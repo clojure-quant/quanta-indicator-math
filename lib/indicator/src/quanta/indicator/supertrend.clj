@@ -8,6 +8,7 @@
 
 (defn calc-trend []
   (let [trend (volatile! 1)
+        trend-count (volatile! 0)
         monotonic-upper (volatile! nil)
         monotonic-lower (volatile! nil)]
     (fn [{:keys [close upper lower]}]
@@ -24,30 +25,28 @@
                      (< upper @monotonic-upper)))
         (vreset! monotonic-upper upper))
 
+      ; increase trend coutn
+      (vswap! trend-count inc)
+
       ; downtrend + up breakout
       (when (and (= @trend -1) (> close @monotonic-upper))
         (vreset! trend 1)
+        (vreset! trend-count 0)
         (vreset! monotonic-upper nil)
         (vreset! monotonic-lower lower))
 
       ; uptrend + down breakout
       (when  (and (= @trend 1) (< close @monotonic-lower))
         (vreset! trend -1)
+        (vreset! trend-count 0)
         (vreset! monotonic-lower nil)
         (vreset! monotonic-upper upper))
 
       ; output columns
       {:supertrend @trend
+       :supertrend-count @trend-count
        :supertrend-upper @monotonic-upper
        :supertrend-lower @monotonic-lower})))
-
-(defn prior-double [price n-ago]
-  (let [l (count price)]
-    (dtype/make-reader
-     :float64 l
-     (if (>= idx n-ago)
-       (price (- idx n-ago))
-       (price idx)))))
 
 (defn supertrend [bar-ds {:keys [atr-n atr-m]
                           :or {atr-m 1.0}}]
@@ -58,21 +57,10 @@
         upper (dfn/+ close delta)
         lower (dfn/- close delta)
         ds-level (tc/add-columns bar-ds {:upper upper :lower lower})
-        ;level-up-breakout-1 (prior-double level-up-breakout 1)
-        ;level-down-breakout-1 (prior-double level-down-breakout 1)
         trend-fn (calc-trend)
         v (->> (tds/mapseq-reader ds-level)
                (map trend-fn)
-               (into []))
-        ;(tc/map-rows ds-level trend-fn)
-        ;lsupertrend (dtype/clone (:supertrend ds2))
-        ;supertrend-upper (dtype/clone (:supertrend-upper ds2))
-        ;supertrend-lower (dtype/clone (:supertrend-lower ds2))
-        ]
-;(tc/add-columns bar-ds {:supertrend supertrend
-                            ;:supertrend-upper supertrend-upper
-                            ;:supertrend-lower supertrend-lower
-                            ;})
+               (into []))] ; into is essential
     (tc/dataset v)))
 
 (defn add-supertrend [bar-ds {:keys [atr-n atr-m]
@@ -80,9 +68,11 @@
                               :as opts}]
   (let [supertrend-ds (supertrend bar-ds opts)
         supertrend (:supertrend supertrend-ds)
+        supertrend-count (:supertrend-count supertrend-ds)
         supertrend-upper (:supertrend-upper supertrend-ds)
         supertrend-lower (:supertrend-lower supertrend-ds)]
     (tc/add-columns bar-ds {:supertrend supertrend
+                            :supertrend-count supertrend-count
                             :supertrend-upper supertrend-upper
                             :supertrend-lower supertrend-lower})))
 
