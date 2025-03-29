@@ -1,0 +1,8 @@
+{:paths ["src"]
+ :deps
+ {com.taoensso/nippy {:mvn/version "3.4.2"}
+  techascent/tech.io {:mvn/version "4.31"}
+  io.github.clojure-quant/quanta-indicator {:local/root "../lib/indicator" :deps/manifest :deps}}
+ 
+ ;
+ }
