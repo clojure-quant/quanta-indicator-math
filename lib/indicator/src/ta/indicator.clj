@@ -390,6 +390,13 @@
         hl (dfn/- high low)]
     hl))
 
+(defn air
+  "air (average intrabar range) is a sma(n) on (ir bar)"
+  [{:keys [n]} bar-ds]
+  (assert n "air needs :n option")
+  (->> (ir bar-ds) 
+       (sma n)))
+
 (defn tr
   "input: bar-ds with (:low :high :close) columns
    output: Max [(H−L), abs(H−Cprev), abs(L−Cprev)]"
