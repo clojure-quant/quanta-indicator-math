@@ -1,4 +1,4 @@
-(ns ta.math.stats
+(ns quanta.math.stats
   (:require
    [tech.v3.datatype.functional :as dfn]
    [tech.v3.datatype :as dtype]))

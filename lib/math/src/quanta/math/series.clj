@@ -1,4 +1,4 @@
-(ns ta.math.series)
+(ns quanta.math.series)
 
 (defn gauss-summation
   "1+2+3+...+n = n*(n+1)/2"

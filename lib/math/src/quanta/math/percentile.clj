@@ -1,4 +1,4 @@
-(ns ta.math.percentile
+(ns quanta.math.percentile
   (:require
    [com.stuartsierra.frequencies :as freq]))
 

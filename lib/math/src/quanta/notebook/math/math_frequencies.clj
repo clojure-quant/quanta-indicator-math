@@ -1,7 +1,7 @@
-(ns quanta.notebook.math-frequencies
+(ns quanta.notebook.math.frequencies
   (:require
    [com.stuartsierra.frequencies :as freq]
-   [ta.math.percentile :refer [percentile]]))
+   [quanta.math.percentile :refer [percentile]]))
 
 (def example-sequence
   (repeatedly 10000 #(rand-int 500)))

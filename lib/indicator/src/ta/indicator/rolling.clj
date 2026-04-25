@@ -4,7 +4,7 @@
    [tech.v3.datatype.functional :as dfn]
    [tablecloth.api :as tc]
    [ta.indicator.returns :as ret]
-   [ta.math.stats :as stats]))
+   [quanta.math.stats :as stats]))
 
 (defn rolling-window-reduce [rf n vec]
   (let [ds (tc/dataset {:in vec})]

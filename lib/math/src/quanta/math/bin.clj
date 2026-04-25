@@ -1,5 +1,4 @@
-(ns ta.math.bin
-  "examples: notebook.math.bin")
+(ns quanta.math.bin)
 
 (defn bin-full
   "bins values in vector xs, returns a vector with bin-ids.

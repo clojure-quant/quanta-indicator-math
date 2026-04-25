@@ -1,9 +1,19 @@
 {:paths ["src"
          "resources"]
+ ;; Neanderthal: use non-AOT jars + OpenBLAS CPU engine (see Getting Started on neanderthal.uncomplicate.org).
+ ;; Optional JVM flags for heavy macros / JNI: `clojure -M:neanderthal ...`
+ :aliases {:neanderthal {:jvm-opts ["-Dclojure.compiler.direct-linking=true"
+                                     "--enable-native-access=ALL-UNNAMED"]}}
  :deps {org.clojure/clojure    {:mvn/version "1.11.3"}
         scicloj/tablecloth {:mvn/version "7.021"} ; brings techml-dataset
         com.stuartsierra/frequencies {:mvn/version "0.1.0"}     ; percentile stats
-        generateme/fastmath {:mvn/version "2.4.0"} ; signal processing
+        generateme/fastmath {:mvn/version "2.4.0"
+                             ;; Avoid MKL on classpath so Neanderthal picks OpenBLAS (see uncomplicate.neanderthal.native/find-default-backend).
+                             :exclusions [com.github.haifengl/smile-mkl]}
+        org.ojalgo/ojalgo   {:mvn/version "55.2.0"}
+        org.uncomplicate/neanderthal-base {:mvn/version "0.61.0"}
+        org.uncomplicate/neanderthal-openblas {:mvn/version "0.61.0"}
+        org.bytedeco/openblas {:mvn/version "0.3.31-1.5.13"}
         }
 ;
  }

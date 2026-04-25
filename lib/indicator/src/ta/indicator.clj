@@ -10,7 +10,7 @@
    [ta.indicator.signal :refer [upward-change downward-change]]
    [ta.indicator.returns :refer [diff-2col diff-n diff]]
    ;[ta.helper.ds :refer [has-col]]
-   [ta.math.series :refer [gauss-summation]]
+   [quanta.math.series :refer [gauss-summation]]
    [fastmath.core :as fmath])
   (:import [clojure.lang PersistentQueue]))
 

@@ -1,5 +1,6 @@
-(ns quanta.notebook.math-bin
-  (:require [ta.math.bin :refer [bin] :as b]))
+(ns quanta.notebook.math.bin
+  (:require 
+   [quanta.math.bin :refer [bin] :as b]))
 
   ; For example, we can bin range 0-14 into 5 bins like so:
 (bin {:n 5} (range 15))
