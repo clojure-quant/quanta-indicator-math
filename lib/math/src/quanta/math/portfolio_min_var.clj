@@ -1,9 +1,8 @@
 (ns quanta.math.portfolio-min-var
-  (:require 
+  (:require
    [quanta.math.covariance :as cov])
   (:import
    (org.ojalgo.optimisation ExpressionsBasedModel Variable Optimisation$Result)))
-
 
 (defn min-var-portfolio
   "Solve a minimum-variance long-only portfolio with box constraints.
@@ -62,14 +61,13 @@
        :variance variance
        :state (str (.getState result))})))
 
-
 ;; Sector cap
 ;;  If assets 0 and 1 are tech, enforce tech ≤ 50%:
 
 #_(let [expr (.addExpression model "tech-cap")]
-  (.set expr ^Variable (vars 0) 1.0)
-  (.set expr ^Variable (vars 1) 1.0)
-  (.upper expr 0.50))
+    (.set expr ^Variable (vars 0) 1.0)
+    (.set expr ^Variable (vars 1) 1.0)
+    (.upper expr 0.50))
 
 (defn return-ds->min-var-portfolio [returns-ds assets min-weight max-weight]
   (-> (cov/ds->covariance-matrix returns-ds assets)

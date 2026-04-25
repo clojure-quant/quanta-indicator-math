@@ -3,8 +3,7 @@
    [uncomplicate.neanderthal.core :as n :refer [ge]]
    [uncomplicate.neanderthal.native :refer [dge native-double]]
    [tech.v3.dataset :as ds]
-   [tech.v3.dataset.column :as col]
-   ))
+   [tech.v3.dataset.column :as col]))
 
 (defn matrix->row-vecs
   "Materialize Neanderthal matrix `a` as nested Clojure vectors (row-major).
@@ -40,7 +39,6 @@
           cov (n/copy xtx)]
       (n/scal (/ 1.0 (dec n-rows)) cov))))
 
-
 (defn dataset->col-major-buffer
   [dataset colnames]
   (let [m   (tech.v3.dataset/row-count dataset)
@@ -51,7 +49,7 @@
                           (get dataset (nth colnames j)))]
         (System/arraycopy col 0 out (* j m) m)))
     out))
- 
+
 (defn dataset->neanderthal
   "Convert selected numeric columns of a tech.ml.dataset/tablecloth dataset
    to a Neanderthal dense double matrix.
@@ -64,14 +62,12 @@
     ;; ge accepts source data and supports explicit layout.
     (ge native-double m n data {:layout :column})))
 
-
 (defn ds->covariance-matrix [ds cols]
   (-> (dataset->neanderthal ds cols)
       (column-demean!)
       (covariance-matrix)))
 
-
-(comment 
+(comment
   (require '[tablecloth.api :as tc])
   (def ds
     (tc/dataset
@@ -82,10 +78,8 @@
 
   (dataset->col-major-buffer ds [:aapl :msft :goog])
   (def x
-    (dataset->neanderthal ds [:aapl :msft :goog]))  
+    (dataset->neanderthal ds [:aapl :msft :goog]))
   x
   (println x)
   (->  (ds->covariance-matrix ds [:aapl :msft :goog])
-       println)
-  
-  )
+       println))

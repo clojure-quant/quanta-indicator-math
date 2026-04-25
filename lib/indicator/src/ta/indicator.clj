@@ -394,7 +394,7 @@
   "air (average intrabar range) is a sma(n) on (ir bar)"
   [{:keys [n]} bar-ds]
   (assert n "air needs :n option")
-  (->> (ir bar-ds) 
+  (->> (ir bar-ds)
        (sma n)))
 
 (defn tr

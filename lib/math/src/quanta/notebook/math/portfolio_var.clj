@@ -1,5 +1,5 @@
 (ns quanta.notebook.math.portfolio-var
-  (:require 
+  (:require
    [quanta.math.portfolio-min-var :refer [min-var-portfolio]]))
 
 (def cov
