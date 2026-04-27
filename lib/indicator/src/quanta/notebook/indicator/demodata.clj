@@ -1,4 +1,4 @@
-(ns demo.env
+(ns quanta.notebook.indicator.demodata
   (:require
    [clojure.string :as str]
    [tablecloth.api :as tc]
@@ -14,10 +14,10 @@
 
 (defn load-ds [filename]
   (let [filename (str "data/" filename ".nippy.gz")
+        filename (io/resource filename)
         s (io/gzip-input-stream filename)
         ds (io/get-nippy s)]
     ds))
-
 
 (defn print-ds [ds]
   (-> ds
