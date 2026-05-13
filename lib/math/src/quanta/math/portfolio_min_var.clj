@@ -41,6 +41,7 @@
       (doseq [i (range n)
               j (range n)]
         (.set
+
          risk
          ^Variable (vars i)
          ^Variable (vars j)

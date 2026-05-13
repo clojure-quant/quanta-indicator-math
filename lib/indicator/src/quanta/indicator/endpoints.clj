@@ -6,8 +6,14 @@
    [java.time ZoneOffset]
    [java.time.temporal WeekFields]))
 
-(defn endpoints [ds type]
-  (let [row-count (tc/row-count ds)]
+(defn endpoints
+  "0-based row indices of the *last* observation in each period (same breaks as
+  R xts::endpoints, but R uses 1-based last rows and ends with NROW). Vector
+  starts at 0 and ends at (dec row-count); skips a duplicate when the first
+  period's last row is already 0. https://rdrr.io/cran/xts/man/endpoints.html"
+  [ds type]
+  (let [row-count (tc/row-count ds)
+        last-idx (dec row-count)]
     (if (zero? row-count)
       []
       (let [period-value (case type
@@ -27,13 +33,17 @@
                last-period (period-value (nth dates 0))
                result [0]]
           (if (= idx row-count)
-            (if (= (peek result) (dec row-count))
+            (if (= (peek result) last-idx)
               result
-              (conj result (dec row-count)))
+              (conj result last-idx))
             (let [current-period (period-value (nth dates idx))]
               (if (= current-period last-period)
                 (recur (inc idx) last-period result)
-                (recur (inc idx) current-period (conj result idx))))))))))
+                (let [ep (dec idx)
+                      result' (if (= ep (peek result))
+                                result
+                                (conj result ep))]
+                  (recur (inc idx) current-period result'))))))))))
 
 
 

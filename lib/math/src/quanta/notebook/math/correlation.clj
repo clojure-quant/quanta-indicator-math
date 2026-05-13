@@ -1,6 +1,6 @@
 (ns quanta.notebook.math.correlation
   (:require
-   [tech.v3.datatype.functional :as fun]
+   [tech.v3.datatype.functional :as dfn]
    [fastmath.stats :as stats]
    [quanta.math.stats :refer [standardize rand-numbers]]))
 
@@ -38,17 +38,17 @@
 
 (let [n  1000
       xs (-> (rand-numbers n)
-             (fun/* 100))
+             (dfn/* 100))
       ys (-> xs
-             (fun/* 20 (rand-numbers n)))
+             (dfn/* 20 (rand-numbers n)))
       zs (-> xs
-             (fun/- ys)
-             (fun/+ (fun/* 20 (rand-numbers n))))]
+             (dfn/- ys)
+             (dfn/+ (dfn/* 20 (rand-numbers n))))]
   (->> [xs ys zs]
        (map standardize)
        stats/covariance-matrix))
 
-(fun/quartiles (range 1000))
+(dfn/quartiles (range 1000))
 
-(fun/quartile-1 (range 1000))
+(dfn/quartile-1 (range 1000))
 

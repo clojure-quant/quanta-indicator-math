@@ -2,7 +2,7 @@
   (:require
    [uncomplicate.neanderthal.core :as n :refer [ge]]
    [uncomplicate.neanderthal.native :refer [dge native-double]]
-   [tech.v3.dataset :as ds]
+   [tech.v3.dataset :as tds]
    [tech.v3.dataset.column :as col]))
 
 (defn matrix->row-vecs
@@ -56,7 +56,7 @@
    Rows remain rows.
    Selected columns become matrix columns."
   [dataset colnames]
-  (let [m    (ds/row-count dataset)
+  (let [m    (tds/row-count dataset)
         n    (count colnames)
         data (dataset->col-major-buffer dataset colnames)]
     ;; ge accepts source data and supports explicit layout.
