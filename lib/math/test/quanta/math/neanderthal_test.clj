@@ -1,6 +1,21 @@
 (ns quanta.math.neanderthal-test
   "Neanderthal helpers vs R reference CSVs in `test/quanta/math/rdata/`.
-  Regenerate: `scripts/gen_quanta_math_test_rdata.sh` from repo root."
+
+  **How the R reference CSVs are produced**
+  From the repo root, run `scripts/gen_quanta_math_test_rdata.sh` (it calls
+  `scripts/gen_quanta_math_test_rdata.R` with the repo root). The R script:
+  - Draws an `m × p` matrix `X` (`set.seed(42)`), writes `returns.csv`, then
+    `demeaned.csv`, `standardized.csv`, `covariance.csv`, `correlation.csv` as before.
+  - **column_sample_stdevs.csv** — same `X` as `returns.csv`; one header row + one data
+    row of `apply(X, 2, sd)` (R’s sample sd, divisor `n−1`), matching
+    `column-sample-stdevs`.
+  - **cormult_c1.csv … cormult_c12.csv** and **cormult_weighted.csv** — four independent
+    synthetic return panels (`p_w = 4` columns, different row counts and seeds), each
+    passed through `cor()`; then `W = (12*C1 + 4*C3 + 2*C6 + C12) / 19`, matching
+    `weight-correlation-matrices`.
+  - **covfromcor_cor.csv**, **covfromcor_vols.csv**, **covfromcor_cov.csv** — `cor()` of a
+    `30 × 3` synthetic panel, a fixed length-3 volatility vector `c(0.024, 0.011, 0.031)`,
+    and `Cov <- outer(vols, vols) * Cor` (element-wise), matching `covariance-from-cor-and-vols`."
   (:require
    [clojure.java.io :as io]
    [clojure.string :as str]
@@ -41,6 +56,19 @@
 (defn- csv->ge [path]
   (let [{:keys [m n rows]} (slurp-csv-dense-matrix path)]
     (ge native-double m n (rows->col-major-doubles rows) {:layout :column})))
+
+(defn- csv->first-data-row
+  "First line after CSV header as a vector of doubles."
+  [path]
+  (let [lines (-> path io/file slurp str/split-lines)]
+    (when (< (count lines) 2)
+      (throw (ex-info "expected header + ≥1 data row" {:path path})))
+    (mapv #(Double/parseDouble %) (str/split (second lines) #","))))
+
+(defn- near-vec? [eps expected actual]
+  (and (= (count expected) (count actual))
+       (every? (fn [[e a]] (< (Math/abs (- e a)) eps))
+                 (map vector expected actual))))
 
 (defn- near-matrix? [eps expected-rows actual-rows]
   (every? (fn [[e a]] (< (Math/abs (- e a)) eps))
@@ -103,6 +131,33 @@
     (let [r (nm/correlation-matrix (csv->ge (str rdata-dir "/returns.csv")))
           got (nm/matrix->row-vecs r)
           {:keys [rows]} (slurp-csv-dense-matrix (str rdata-dir "/correlation.csv"))]
+      (is (near-matrix? 1e-12 rows got)))))
+
+(deftest column-sample-stdevs-matches-r-csv
+  (testing "column-sample-stdevs vs R apply(X, 2, sd)"
+    (let [x (csv->ge (str rdata-dir "/returns.csv"))
+          got (nm/column-sample-stdevs x)
+          want (csv->first-data-row (str rdata-dir "/column_sample_stdevs.csv"))]
+      (is (near-vec? 1e-12 want got)))))
+
+(deftest weight-correlation-matrices-matches-r-csv
+  (testing "weight-correlation-matrices vs R (12*C1 + 4*C3 + 2*C6 + C12) / 19"
+    (let [c1 (csv->ge (str rdata-dir "/cormult_c1.csv"))
+          c3 (csv->ge (str rdata-dir "/cormult_c3.csv"))
+          c6 (csv->ge (str rdata-dir "/cormult_c6.csv"))
+          c12 (csv->ge (str rdata-dir "/cormult_c12.csv"))
+          w (nm/weight-correlation-matrices c1 c3 c6 c12)
+          got (nm/matrix->row-vecs w)
+          {:keys [rows]} (slurp-csv-dense-matrix (str rdata-dir "/cormult_weighted.csv"))]
+      (is (near-matrix? 1e-12 rows got)))))
+
+(deftest covariance-from-cor-and-vols-matches-r-csv
+  (testing "covariance-from-cor-and-vols vs R outer(vols, vols) * Cor"
+    (let [cor-mat (csv->ge (str rdata-dir "/covfromcor_cor.csv"))
+          vol-vec (csv->first-data-row (str rdata-dir "/covfromcor_vols.csv"))
+          cov (nm/covariance-from-cor-and-vols cor-mat vol-vec)
+          got (nm/matrix->row-vecs cov)
+          {:keys [rows]} (slurp-csv-dense-matrix (str rdata-dir "/covfromcor_cov.csv"))]
       (is (near-matrix? 1e-12 rows got)))))
 
 (deftest covariance-matrix-requires-two-rows

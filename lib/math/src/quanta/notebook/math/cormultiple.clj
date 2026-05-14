@@ -25,54 +25,6 @@
       (throw (ex-info "tail-rows: n exceeds row count" {:n n :mrows m})))
     (n/submatrix a (- m n) 0 n (n/ncols a))))
 
-(defn column-sample-stdevs
-  "Per-column sample standard deviation (divisor n-1), same as R `apply(a, 2, sd)`.
-
-  After `column-demean!`, column `j` has squared Euclidean norm equal to `(n-1)` times
-  its sample variance, so `stdev_j = (nrm2 (col a j)) / sqrt(n-1)` — only Neanderthal
-  BLAS/vector ops for the numerics; one Clojure pass over column indices to gather values."
-  [a]
-  (let [m (long (n/mrows a))]
-    (when (< m 2)
-      (throw (ex-info "column-sample-stdevs requires at least two rows." {:n-rows m})))
-    (let [xc (n/copy a)
-          sqrt-n-1 (Math/sqrt (double (dec m)))]
-      (nm/column-demean! xc)
-      (mapv (fn [^long j]
-              (/ (double (n/nrm2 (n/col xc j))) sqrt-n-1))
-            (range (n/ncols xc))))))
-
-(defn weight-correlation-matrices
-  "Weighted average of neanderthal Pearson correlation matrices,
-   matching the R `(12*C1 + 4*C3 + 2*C6 + C12) / 19` formula"
-  [c1 c3 c6 c12]
-  (let [p (long (n/ncols c12))
-        out (ge native-double p p (double-array (* p p)) {:layout :column})]
-    (n/axpy! 12.0 c1 out)
-    (n/axpy! 4.0 c3 out)
-    (n/axpy! 2.0 c6 out)
-    (n/axpy! 1.0 c12 out)
-    (n/scal! (/ 1.0 19.0) out)
-    out))
-
-(defn covariance-from-cor-and-vols
-  "Rebuild covariance from correlation `cor-mat` and per-asset volatilities `vol-vec`
-   (length p): `cov_ij = vol_i * vol_j * cor_ij`, i.e. R `t(vols) %*% vols * cors` with
-   element-wise final multiply.
-
-   Implemented as two BLAS matrix multiplies: `Cov = D^T * (Cor * D)` with diagonal
-   `D = diag(vol)` from `gd`. For diagonal `D`, `trans(D)` matches `D`; the transpose
-   makes the same layout as R's `t(vols) %*% ...` explicit."
-  [cor-mat vol-vec]
-  (let [p (long (count vol-vec))
-        D (gd native-double p (dv vol-vec))
-        Dt (n/trans D)
-        tmp (ge native-double p p (double-array (* p p)) {:layout :column})
-        out (ge native-double p p (double-array (* p p)) {:layout :column})]
-    (n/mm! 1.0 cor-mat D 0.0 tmp)
-    (n/mm! 1.0 Dt tmp 0.0 out)
-    out))
-
 (defn random-returns-matrix
   "Dense `m`×`p` matrix of pseudo-random Gaussian returns (column-major)."
   [^long m ^long p ^long seed]
@@ -108,13 +60,13 @@
         c3 (nm/correlation-matrix (tail-rows ret-matrix 15))
         c6 (nm/correlation-matrix (tail-rows ret-matrix 30))
         c12 (nm/correlation-matrix ret-matrix)]
-    (weight-correlation-matrices c1 c3 c6 c12)))
+    (nm/weight-correlation-matrices c1 c3 c6 c12)))
 
 (def vols-vec
-  (column-sample-stdevs one-month))
+  (nm/column-sample-stdevs one-month))
 
 (def covs-mat
-  (covariance-from-cor-and-vols cors-mat vols-vec))
+  (nm/covariance-from-cor-and-vols cors-mat vols-vec))
 
 ;; inspect
 ret-matrix

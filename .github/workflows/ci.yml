@@ -33,9 +33,10 @@ jobs:
       shell: bash
     - name: clj-kondo
       run: clojure -M:lint
-    - name: test-clj
-      run: |
-         cd lib/indicator && clojure -X:test
+    - name: test-indicator
+      run: cd lib/indicator && clojure -X:test
+    - name: test-math
+      run: cd lib/math && clojure -X:test
     - name: Release
       if: success()
       # if: github.event_name == 'push'
