@@ -1,6 +1,6 @@
 (ns quanta.math.portfolio-min-var
   (:require
-   [quanta.math.covariance :as cov])
+   [quanta.math.neanderthal :as nm])
   (:import
    (org.ojalgo.optimisation ExpressionsBasedModel Variable Optimisation$Result)))
 
@@ -71,7 +71,7 @@
     (.upper expr 0.50))
 
 (defn return-ds->min-var-portfolio [returns-ds assets min-weight max-weight]
-  (-> (cov/ds->covariance-matrix returns-ds assets)
-      cov/matrix->row-vecs
+  (-> (nm/ds->covariance-matrix returns-ds assets)
+      nm/matrix->row-vecs
       (min-var-portfolio min-weight max-weight)
       (assoc :assets assets)))

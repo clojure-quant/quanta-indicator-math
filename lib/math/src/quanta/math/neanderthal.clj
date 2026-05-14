@@ -1,7 +1,9 @@
-(ns quanta.math.covariance
+(ns quanta.math.neanderthal
+  "Neanderthal-backed dense linear helpers: dataset → matrix, column demean/standardize,
+   covariance and correlation (sample, divisor n−1)."
   (:require
    [uncomplicate.neanderthal.core :as n :refer [ge]]
-   [uncomplicate.neanderthal.native :refer [dge native-double]] ; .native=MKL; .openblas=OpenBLAS .cuda=GPU
+   [uncomplicate.neanderthal.native :refer [dv native-double]]
    [tech.v3.dataset :as tds]
    [tech.v3.dataset.column :as col]))
 
@@ -27,7 +29,6 @@
   (let [m    (tds/row-count dataset)
         n    (count colnames)
         data (dataset->col-major-buffer dataset colnames)]
-    ;; ge accepts source data and supports explicit layout.
     (ge native-double m n data {:layout :column})))
 
 ;; neanderthal matrix -> row-vecs
@@ -43,14 +44,18 @@
         (range (n/mrows a))))
 
 (defn column-demean!
-  "Subtract each column mean in place. Returns the same matrix `a`."
+  "Subtract each column mean in place. Returns the same matrix `a`.
+
+  For each column `c`, uses `sum(c)/m` as the mean, then BLAS `axpy!` so that
+  `c <- c + (-mu)*1` with a length-`m` vector of ones (same as subtracting `mu`
+  from every entry)."
   [a]
-  (let [m (double (n/mrows a))]
+  (let [m (long (n/mrows a))
+        ones (dv (vec (repeat m 1.0)))]
     (doseq [j (range (n/ncols a))]
       (let [c (n/col a j)
-            mu (/ (n/sum c) m)]
-        (doseq [i (range (n/mrows a))]
-          (n/entry! a i j (- (n/entry a i j) mu)))))
+            mu (/ (double (n/sum c)) (double m))]
+        (n/axpy! (- mu) ones c)))
     a))
 
 (defn covariance-matrix
@@ -68,22 +73,19 @@
 
 (defn column-standardize!
   "Scale each column by 1 / sample standard deviation (divisor n-1).
-   Input must already be column-demeaned. Mutates `a` in place."
+   Input must already be column-demeaned. Mutates `a` in place.
+
+   Uses `nrm2` for the column RMS and BLAS `scal!` for the scale."
   [a]
   (let [m (long (n/mrows a))
         n-1 (double (dec m))]
     (doseq [j (range (n/ncols a))]
-      (let [sumsq (loop [i 0 acc 0.0]
-                    (if (= i m)
-                      acc
-                      (let [v (double (n/entry a i j))]
-                        (recur (unchecked-inc i) (+ acc (* v v))))))]
-        (when (zero? sumsq)
+      (let [c (n/col a j)
+            ss (Math/pow (double (n/nrm2 c)) 2.0)]
+        (when (zero? ss)
           (throw (ex-info "column-standardize! requires positive sample variance in each column."
-                          {:column j :sum-of-squares sumsq})))
-        (let [s (Math/sqrt (/ sumsq n-1))]
-          (dotimes [i m]
-            (n/entry! a i j (/ (double (n/entry a i j)) s))))))
+                          {:column j :sum-of-squares ss})))
+        (n/scal! (/ 1.0 (Math/sqrt (/ ss n-1))) c)))
     a))
 
 (defn correlation-matrix
@@ -92,8 +94,6 @@
   [x]
   (let [z (n/copy x)]
     (-> z column-demean! column-standardize! covariance-matrix)))
-
-
 
 (defn ds->covariance-matrix [ds cols]
   (-> (dataset->neanderthal ds cols)

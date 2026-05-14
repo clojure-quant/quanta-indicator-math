@@ -1,12 +1,12 @@
 (ns quanta.notebook.math.covariance
   (:require
-   [quanta.math.covariance :as cov]
-   [quanta.notebook.math.demo-data :refer [returns-ds]]
-   [quanta.math.portfolio-min-var :refer [min-var-portfolio return-ds->min-var-portfolio]]))
+   [quanta.math.neanderthal :as nm]
+   [quanta.math.portfolio-min-var :refer [min-var-portfolio return-ds->min-var-portfolio]]
+   [quanta.notebook.math.demo-data :refer [returns-ds]]))
 
-(def cm (cov/ds->covariance-matrix returns-ds ["AAPL" "MSFT" "GOOG"]))
+(def cm (nm/ds->covariance-matrix returns-ds ["AAPL" "MSFT" "GOOG"]))
 
-(cov/matrix->row-vecs cm)
+(nm/matrix->row-vecs cm)
 
 ;; printing is not showing enough digits.
 (println cm)

@@ -1,26 +1,33 @@
 {:paths ["src"
          "resources"]
- ;; Neanderthal: use non-AOT jars + OpenBLAS CPU engine (see Getting Started on neanderthal.uncomplicate.org).
- ;; Optional JVM flags for heavy macros / JNI: `clojure -M:neanderthal ...`
+ ;; Neanderthal: non-AOT jars + Intel MKL CPU engine (see Getting Started:
+ ;; https://neanderthal.uncomplicate.org/articles/getting_started.html ).
+ ;; `neanderthal-mkl` pulls `mkl-platform` (JNI + platform slices). For full oneMKL
+ ;; natives on Linux only, depend on `org.bytedeco/mkl$linux-x86_64-redist` at the
+ ;; same preset version as transitive `mkl` (here 2025.3-1.5.13).
+ ;; Note: `mkl-platform-redist$linux-x86_64` is not a published artifact (only the
+ ;; unclassified aggregator exists). `neanderthal-mkl` has no `$platform` variant —
+ ;; it is a single JVM jar; platform choice is only in ByteDeco `mkl*` coords.
+ ;; Clojure CLI ≥1.11: classifiers go in the lib name (`…/mkl$linux-x86_64-redist`),
+ ;; not as `:classifier` in the coord map.
  :aliases {:neanderthal {:jvm-opts ["-Dclojure.compiler.direct-linking=true"
                                      "--enable-native-access=ALL-UNNAMED"]}
            :test {:extra-paths ["test"]
                   :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
                   :exec-fn cognitect.test-runner.api/test
+                  :exec-args {:dirs ["test"]}
                   :jvm-opts ["-Dclojure.compiler.direct-linking=true"
                               "--enable-native-access=ALL-UNNAMED"]}}
  :deps {org.clojure/clojure    {:mvn/version "1.11.3"}
         scicloj/tablecloth {:mvn/version "7.021"} ; brings techml-dataset
         com.stuartsierra/frequencies {:mvn/version "0.1.0"}     ; percentile stats
         generateme/fastmath {:mvn/version "2.4.0"
-                             ;; Avoid MKL on classpath so Neanderthal picks OpenBLAS (see uncomplicate.neanderthal.native/find-default-backend).
+                             ;; Avoid Haifeng SMILE’s MKL bundle colliding with ByteDeco/Neanderthal MKL.
                              :exclusions [com.github.haifengl/smile-mkl]}
-        ; neanderthal
+        ; neanderthal — MKL engine (Linux/Windows); macOS uses Accelerate, no MKL jar.
         org.uncomplicate/neanderthal-base {:mvn/version "0.61.0"}
-        org.uncomplicate/neanderthal-openblas {:mvn/version "0.61.0"}
-        ;org.bytedeco/openblas {:mvn/version "0.3.31-1.5.13" :classifier "linux-x86_64"}
-        ;; Avoid MKL on classpath so Neanderthal picks OpenBLAS (see uncomplicate.neanderthal.native/find-default-backend).
-        org.bytedeco/mkl-platform-redist {:mvn/version "2025.1-1.5.13" :classifier "linux-x86_64"}
+        org.uncomplicate/neanderthal-mkl {:mvn/version "0.61.0"}
+        org.bytedeco/mkl$linux-x86_64-redist {:mvn/version "2025.3-1.5.13"}
         ; ojAlgo
         org.ojalgo/ojalgo   {:mvn/version "55.2.0"}
         }

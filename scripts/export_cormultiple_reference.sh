@@ -7,7 +7,7 @@ exec clojure -M:neanderthal -e "
 (require '[clojure.string :as str]
          '[clojure.java.io :as io]
          '[quanta.notebook.math.cormultiple :as cm]
-         '[quanta.math.covariance :as cov])
+         '[quanta.math.neanderthal :as nm])
 
 (letfn [(write-csv-matrix [path row-vecs]
           (with-open [w (io/writer path)]
@@ -19,9 +19,13 @@ exec clojure -M:neanderthal -e "
         (write-csv-vec [path v]
           (with-open [w (io/writer path)]
             (.write w (str/join \"\\n\" (map str v)))))]
-  (let [R (fn [m] (cov/matrix->row-vecs m))
+  (let [R (fn [m] (nm/matrix->row-vecs m))
         ret (cm/random-returns-matrix 60 5 42)
-        cors (cm/fast-correlation-average-matrix ret)
+        cors (let [c1 (nm/correlation-matrix (cm/tail-rows ret 5))
+                   c3 (nm/correlation-matrix (cm/tail-rows ret 15))
+                   c6 (nm/correlation-matrix (cm/tail-rows ret 30))
+                   c12 (nm/correlation-matrix ret)]
+               (cm/weight-correlation-matrices c1 c3 c6 c12))
         vols (cm/column-sample-stdevs (cm/tail-rows ret 5))
         covs (cm/covariance-from-cor-and-vols cors vols)
         root (str \"$ROOT/scripts/data/\") ]

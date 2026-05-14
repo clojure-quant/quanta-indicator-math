@@ -47,7 +47,8 @@ three_months <- tail(returns, 15)
 six_months <- tail(returns, 30)
 ret_subset <- returns
 
-cors_r <- (
+## `cors_mat`: same object as Clojure `cors-mat` / `fast-correlation-average-matrix`
+cors_mat <- (
   cor(one_month[, idx, drop = FALSE]) * 12
   + cor(three_months[, idx, drop = FALSE]) * 4
   + cor(six_months[, idx, drop = FALSE]) * 2
@@ -56,19 +57,27 @@ cors_r <- (
 
 vols_r <- apply(one_month[, idx, drop = FALSE], 2, sd)
 
-covs_r <- outer(vols_r, vols_r) * cors_r
+covs_r <- outer(vols_r, vols_r) * cors_mat
 
 tol <- 1e-12
 
+## Internal: covs built from this cors_mat (matches R `outer(vols)*cors`)
+cmp_cors_cov <- all.equal(covs_r, outer(vols_r, vols_r) * cors_mat,
+                          tolerance = tol, check.attributes = FALSE)
+if (!isTRUE(cmp_cors_cov)) {
+  stop("cors_mat vs covs_r consistency:\n", cmp_cors_cov, call. = FALSE)
+}
+message("OK: covs_r equals outer(vols_r, vols_r) * cors_mat (self-consistent).")
+
 if (file.exists(cors_clj_path)) {
   cors_clj <- read_num_matrix_csv(cors_clj_path)
-  cmp_cors <- all.equal(cors_r, cors_clj, tolerance = tol, check.attributes = FALSE)
+  cmp_cors <- all.equal(cors_mat, cors_clj, tolerance = tol, check.attributes = FALSE)
   if (!isTRUE(cmp_cors)) {
-    stop("cors mismatch:\n", cmp_cors, call. = FALSE)
+    stop("cors-mat mismatch vs Clojure export:\n", cmp_cors, call. = FALSE)
   }
-  message("OK: weighted correlation matrix matches Clojure (tol=", tol, ").")
+  message("OK: cors-mat (weighted correlation) matches Clojure export (tol=", tol, ").")
 } else {
-  message("Skip cors check (missing ", cors_clj_path, ").")
+  message("Skip cors-mat check (missing ", cors_clj_path, ").")
 }
 
 if (file.exists(vols_clj_path)) {

@@ -13,10 +13,9 @@
 
    Cross-check vs R: scripts/cormultiple_r_verify.R (same returns under scripts/data/)."
   (:require
-   [uncomplicate.neanderthal.core :as n :refer [ge]]
-   [uncomplicate.neanderthal.native :refer [native-double]]
-   [quanta.math.covariance :as cov]
-   [quanta.math.stats :as stats]))
+   [uncomplicate.neanderthal.core :as n :refer [ge gd]]
+   [uncomplicate.neanderthal.native :refer [dv native-double]]
+   [quanta.math.neanderthal :as nm]))
 
 (defn tail-rows
   "View of the last `n` rows of `a` (same columns). `n` must be ≤ `mrows a`."
@@ -27,47 +26,51 @@
     (n/submatrix a (- m n) 0 n (n/ncols a))))
 
 (defn column-sample-stdevs
-  "Vector of column sample standard deviations (divisor n-1), length = `ncols a`."
-  [a]
-  (let [m (n/mrows a)]
-    (mapv (fn [j]
-            (stats/standard-deviation
-             (mapv #(double (n/entry a % j)) (range m))))
-          (range (n/ncols a)))))
+  "Per-column sample standard deviation (divisor n-1), same as R `apply(a, 2, sd)`.
 
-(defn fast-correlation-average-matrix
-  "Weighted average of Pearson correlation matrices on tail windows, matching the R
-   `(12*C1 + 4*C3 + 2*C6 + C60) / 19` construction. Pass the full return matrix `a`
-   (e.g. 60×p); windows are last 5, 15, 30, and all rows of `a`."
+  After `column-demean!`, column `j` has squared Euclidean norm equal to `(n-1)` times
+  its sample variance, so `stdev_j = (nrm2 (col a j)) / sqrt(n-1)` — only Neanderthal
+  BLAS/vector ops for the numerics; one Clojure pass over column indices to gather values."
   [a]
-  (let [c1 (cov/correlation-matrix (tail-rows a 5))
-        c3 (cov/correlation-matrix (tail-rows a 15))
-        c6 (cov/correlation-matrix (tail-rows a 30))
-        c0 (cov/correlation-matrix a)
-        p (n/ncols a)
+  (let [m (long (n/mrows a))]
+    (when (< m 2)
+      (throw (ex-info "column-sample-stdevs requires at least two rows." {:n-rows m})))
+    (let [xc (n/copy a)
+          sqrt-n-1 (Math/sqrt (double (dec m)))]
+      (nm/column-demean! xc)
+      (mapv (fn [^long j]
+              (/ (double (n/nrm2 (n/col xc j))) sqrt-n-1))
+            (range (n/ncols xc))))))
+
+(defn weight-correlation-matrices
+  "Weighted average of neanderthal Pearson correlation matrices,
+   matching the R `(12*C1 + 4*C3 + 2*C6 + C12) / 19` formula"
+  [c1 c3 c6 c12]
+  (let [p (long (n/ncols c12))
         out (ge native-double p p (double-array (* p p)) {:layout :column})]
-    (dotimes [i p]
-      (dotimes [j p]
-        (n/entry! out i j
-                  (+ (/ (* 12.0 (n/entry c1 i j)) 19.0)
-                     (/ (* 4.0 (n/entry c3 i j)) 19.0)
-                     (/ (* 2.0 (n/entry c6 i j)) 19.0)
-                     (/ (n/entry c0 i j) 19.0)))))
+    (n/axpy! 12.0 c1 out)
+    (n/axpy! 4.0 c3 out)
+    (n/axpy! 2.0 c6 out)
+    (n/axpy! 1.0 c12 out)
+    (n/scal! (/ 1.0 19.0) out)
     out))
 
 (defn covariance-from-cor-and-vols
   "Rebuild covariance from correlation `cor-mat` and per-asset volatilities `vol-vec`
    (length p): `cov_ij = vol_i * vol_j * cor_ij`, i.e. R `t(vols) %*% vols * cors` with
-   element-wise final multiply."
+   element-wise final multiply.
+
+   Implemented as two BLAS matrix multiplies: `Cov = D^T * (Cor * D)` with diagonal
+   `D = diag(vol)` from `gd`. For diagonal `D`, `trans(D)` matches `D`; the transpose
+   makes the same layout as R's `t(vols) %*% ...` explicit."
   [cor-mat vol-vec]
-  (let [p (count vol-vec)
+  (let [p (long (count vol-vec))
+        D (gd native-double p (dv vol-vec))
+        Dt (n/trans D)
+        tmp (ge native-double p p (double-array (* p p)) {:layout :column})
         out (ge native-double p p (double-array (* p p)) {:layout :column})]
-    (dotimes [i p]
-      (dotimes [j p]
-        (n/entry! out i j
-                  (* (double (nth vol-vec i))
-                     (double (nth vol-vec j))
-                     (n/entry cor-mat i j)))))
+    (n/mm! 1.0 cor-mat D 0.0 tmp)
+    (n/mm! 1.0 Dt tmp 0.0 out)
     out))
 
 (defn random-returns-matrix
@@ -101,7 +104,11 @@
   ret-matrix)
 
 (def cors-mat
-  (fast-correlation-average-matrix ret-matrix))
+  (let [c1 (nm/correlation-matrix (tail-rows ret-matrix 5))
+        c3 (nm/correlation-matrix (tail-rows ret-matrix 15))
+        c6 (nm/correlation-matrix (tail-rows ret-matrix 30))
+        c12 (nm/correlation-matrix ret-matrix)]
+    (weight-correlation-matrices c1 c3 c6 c12)))
 
 (def vols-vec
   (column-sample-stdevs one-month))
@@ -120,8 +127,8 @@ six-months
 
 ret-subset
 
-(cov/matrix->row-vecs cors-mat)
+(nm/matrix->row-vecs cors-mat)
 
 vols-vec
 
-(cov/matrix->row-vecs covs-mat)
+(nm/matrix->row-vecs covs-mat)
