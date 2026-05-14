@@ -39,6 +39,34 @@
           cov (n/copy xtx)]
       (n/scal (/ 1.0 (dec n-rows)) cov))))
 
+(defn column-standardize!
+  "Scale each column by 1 / sample standard deviation (divisor n-1).
+   Input must already be column-demeaned. Mutates `a` in place."
+  [a]
+  (let [m (long (n/mrows a))
+        n-1 (double (dec m))]
+    (doseq [j (range (n/ncols a))]
+      (let [sumsq (loop [i 0 acc 0.0]
+                    (if (= i m)
+                      acc
+                      (let [v (double (n/entry a i j))]
+                        (recur (unchecked-inc i) (+ acc (* v v))))))]
+        (when (zero? sumsq)
+          (throw (ex-info "column-standardize! requires positive sample variance in each column."
+                          {:column j :sum-of-squares sumsq})))
+        (let [s (Math/sqrt (/ sumsq n-1))]
+          (dotimes [i m]
+            (n/entry! a i j (/ (double (n/entry a i j)) s))))))
+    a))
+
+(defn correlation-matrix
+  "Pearson sample correlation matrix of the columns of `x` (same as R `cor(x)` on a numeric matrix).
+   Does not mutate `x`. Requires at least two rows."
+  [x]
+  (let [z (n/copy x)]
+    (-> z column-demean! column-standardize! covariance-matrix)))
+
+
 (defn dataset->col-major-buffer
   [dataset colnames]
   (let [m   (tech.v3.dataset/row-count dataset)
@@ -66,6 +94,9 @@
   (-> (dataset->neanderthal ds cols)
       (column-demean!)
       (covariance-matrix)))
+
+(defn ds->correlation-matrix [ds cols]
+  (correlation-matrix (dataset->neanderthal ds cols)))
 
 (comment
   (require '[tablecloth.api :as tc])
