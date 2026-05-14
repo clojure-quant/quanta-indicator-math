@@ -10,14 +10,8 @@
  ;; it is a single JVM jar; platform choice is only in ByteDeco `mkl*` coords.
  ;; Clojure CLI ≥1.11: classifiers go in the lib name (`…/mkl$linux-x86_64-redist`),
  ;; not as `:classifier` in the coord map.
- :aliases {:neanderthal {:jvm-opts ["-Dclojure.compiler.direct-linking=true"
-                                     "--enable-native-access=ALL-UNNAMED"]}
-           :test {:extra-paths ["test"]
-                  :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-                  :exec-fn cognitect.test-runner.api/test
-                  :exec-args {:dirs ["test"]}
-                  :jvm-opts ["-Dclojure.compiler.direct-linking=true"
-                              "--enable-native-access=ALL-UNNAMED"]}}
+ 
+
  :deps {org.clojure/clojure    {:mvn/version "1.11.3"}
         scicloj/tablecloth {:mvn/version "7.021"} ; brings techml-dataset
         com.stuartsierra/frequencies {:mvn/version "0.1.0"}     ; percentile stats
@@ -31,5 +25,17 @@
         ; ojAlgo
         org.ojalgo/ojalgo   {:mvn/version "55.2.0"}
         }
+ 
+  :aliases {;; CI uses JDK 24 (see `.github/workflows/ci.yml`), which accepts
+            ;; `--enable-native-access=ALL-UNNAMED` (Neanderthal JNI; see Neanderthal getting started).
+            ;; On older JDKs that reject this option, drop it locally or override in `/.clojure/deps.edn`.
+            :neanderthal {:jvm-opts ["-Dclojure.compiler.direct-linking=true"
+                                    "--enable-native-access=ALL-UNNAMED"]}
+           :test {:extra-paths ["test"]
+                  :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+                  :exec-fn cognitect.test-runner.api/test
+                  :exec-args {:dirs ["test"]}
+                  :jvm-opts ["-Dclojure.compiler.direct-linking=true"
+                             "--enable-native-access=ALL-UNNAMED"]}}
 ;
  }
