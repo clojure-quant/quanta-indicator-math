@@ -1,9 +1,36 @@
 (ns quanta.math.covariance
   (:require
    [uncomplicate.neanderthal.core :as n :refer [ge]]
-   [uncomplicate.neanderthal.native :refer [dge native-double]]
+   [uncomplicate.neanderthal.native :refer [dge native-double]] ; .native=MKL; .openblas=OpenBLAS .cuda=GPU
    [tech.v3.dataset :as tds]
    [tech.v3.dataset.column :as col]))
+
+;; dataset -> neanderthal matrix
+
+(defn dataset->col-major-buffer
+  [dataset colnames]
+  (let [m   (tech.v3.dataset/row-count dataset)
+        n   (count colnames)
+        out (double-array (* m n))]
+    (dotimes [j n]
+      (let [^doubles col (tech.v3.dataset.column/to-double-array
+                          (get dataset (nth colnames j)))]
+        (System/arraycopy col 0 out (* j m) m)))
+    out))
+
+(defn dataset->neanderthal
+  "Convert selected numeric columns of a tech.ml.dataset/tablecloth dataset
+   to a Neanderthal dense double matrix.
+   Rows remain rows.
+   Selected columns become matrix columns."
+  [dataset colnames]
+  (let [m    (tds/row-count dataset)
+        n    (count colnames)
+        data (dataset->col-major-buffer dataset colnames)]
+    ;; ge accepts source data and supports explicit layout.
+    (ge native-double m n data {:layout :column})))
+
+;; neanderthal matrix -> row-vecs
 
 (defn matrix->row-vecs
   "Materialize Neanderthal matrix `a` as nested Clojure vectors (row-major).
@@ -67,28 +94,6 @@
     (-> z column-demean! column-standardize! covariance-matrix)))
 
 
-(defn dataset->col-major-buffer
-  [dataset colnames]
-  (let [m   (tech.v3.dataset/row-count dataset)
-        n   (count colnames)
-        out (double-array (* m n))]
-    (dotimes [j n]
-      (let [^doubles col (tech.v3.dataset.column/to-double-array
-                          (get dataset (nth colnames j)))]
-        (System/arraycopy col 0 out (* j m) m)))
-    out))
-
-(defn dataset->neanderthal
-  "Convert selected numeric columns of a tech.ml.dataset/tablecloth dataset
-   to a Neanderthal dense double matrix.
-   Rows remain rows.
-   Selected columns become matrix columns."
-  [dataset colnames]
-  (let [m    (tds/row-count dataset)
-        n    (count colnames)
-        data (dataset->col-major-buffer dataset colnames)]
-    ;; ge accepts source data and supports explicit layout.
-    (ge native-double m n data {:layout :column})))
 
 (defn ds->covariance-matrix [ds cols]
   (-> (dataset->neanderthal ds cols)
@@ -102,15 +107,15 @@
   (require '[tablecloth.api :as tc])
   (def ds
     (tc/dataset
-     {:aapl [0.01 -0.02 0.015 0.005 -0.01]
-      :msft [0.02  0.01 -0.01  0.00  0.015]
-      :goog [-0.01 0.00 0.02  0.01 -0.005]}))
+     {"aapl" [0.01 -0.02 0.015 0.005 -0.01]
+      "msft" [0.02  0.01 -0.01  0.00  0.015]
+      "goog" [-0.01 0.00 0.02  0.01 -0.005]}))
   ds
 
-  (dataset->col-major-buffer ds [:aapl :msft :goog])
+  (dataset->col-major-buffer ds ["aapl" "msft" "goog"])
   (def x
-    (dataset->neanderthal ds [:aapl :msft :goog]))
+    (dataset->neanderthal ds ["aapl" "msft" "goog"]))
   x
   (println x)
-  (->  (ds->covariance-matrix ds [:aapl :msft :goog])
+  (->  (ds->covariance-matrix ds ["aapl" "msft" "goog"])
        println))

@@ -15,10 +15,14 @@
         generateme/fastmath {:mvn/version "2.4.0"
                              ;; Avoid MKL on classpath so Neanderthal picks OpenBLAS (see uncomplicate.neanderthal.native/find-default-backend).
                              :exclusions [com.github.haifengl/smile-mkl]}
-        org.ojalgo/ojalgo   {:mvn/version "55.2.0"}
+        ; neanderthal
         org.uncomplicate/neanderthal-base {:mvn/version "0.61.0"}
         org.uncomplicate/neanderthal-openblas {:mvn/version "0.61.0"}
-        org.bytedeco/openblas {:mvn/version "0.3.31-1.5.13"}
+        ;org.bytedeco/openblas {:mvn/version "0.3.31-1.5.13" :classifier "linux-x86_64"}
+        ;; Avoid MKL on classpath so Neanderthal picks OpenBLAS (see uncomplicate.neanderthal.native/find-default-backend).
+        org.bytedeco/mkl-platform-redist {:mvn/version "2025.1-1.5.13" :classifier "linux-x86_64"}
+        ; ojAlgo
+        org.ojalgo/ojalgo   {:mvn/version "55.2.0"}
         }
 ;
  }
