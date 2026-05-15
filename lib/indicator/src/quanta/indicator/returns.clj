@@ -1,4 +1,4 @@
-(ns ta.indicator.returns
+(ns quanta.indicator.returns
   (:require
    [tech.v3.datatype :as dtype]
    [tech.v3.datatype.functional :as dfn]
@@ -14,7 +14,7 @@
       :float32
       n
       (if (= idx 0)
-        Double/NaN
+        0
         (let [c (integrated-values idx)
               p (integrated-values (dec idx))
               invalid (or (nil-or-nan? c) (nil-or-nan? p))]

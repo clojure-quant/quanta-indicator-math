@@ -3,7 +3,7 @@
    [tech.v3.dataset.rolling :as r]
    [tech.v3.datatype.functional :as dfn]
    [tablecloth.api :as tc]
-   [ta.indicator.returns :as ret]
+   [quanta.indicator.returns :as ret]
    [quanta.math.stats :as stats]))
 
 (defn rolling-window-reduce [rf n vec]

@@ -8,7 +8,7 @@
    [ta.indicator.rolling :as roll]
    [ta.indicator.helper :refer [indicator nil-or-nan?]]
    [ta.indicator.signal :refer [upward-change downward-change]]
-   [ta.indicator.returns :refer [diff-2col diff-n diff]]
+   [quanta.indicator.returns :refer [diff-2col diff-n diff]]
    ;[ta.helper.ds :refer [has-col]]
    [quanta.math.series :refer [gauss-summation]]
    [fastmath.core :as fmath])
