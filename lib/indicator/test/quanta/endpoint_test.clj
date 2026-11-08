@@ -37,3 +37,31 @@
 
 (deftest test-endpoints-year
   (is (= (endpoints ds-year :year) [0 1 4])))
+
+
+(def ds-quarter
+  (tc/dataset
+   {:date [(t/instant #time/instant "2026-03-30T17:00:00Z")  ; 0 Q1
+           (t/instant #time/instant "2026-03-31T17:00:00Z")  ; 1 Q1 (last of Q1)
+           (t/instant #time/instant "2026-04-01T17:00:00Z")  ; 2 Q2
+           (t/instant #time/instant "2026-04-02T17:00:00Z")  ; 3 Q2
+           (t/instant #time/instant "2026-04-03T17:00:00Z")] ; 4 Q2 (series end)
+    :close [100 105 110 115 120]}))
+
+
+(deftest test-endpoints-quarter
+  (is (= (endpoints ds-quarter :quarter) [0 1 4])))
+
+
+(def ds-quarter-year
+  (tc/dataset
+   {:date [(t/instant #time/instant "2025-12-30T17:00:00Z")  ; 0 Q4
+           (t/instant #time/instant "2025-12-31T17:00:00Z")  ; 1 Q4 (last of Q4)
+           (t/instant #time/instant "2026-01-01T17:00:00Z")  ; 2 Q1
+           (t/instant #time/instant "2026-01-02T17:00:00Z")  ; 3 Q1
+           (t/instant #time/instant "2026-01-03T17:00:00Z")] ; 4 Q1 (series end)
+    :close [100 105 110 115 120]}))
+
+
+(deftest test-endpoints-quarter-year
+  (is (= (endpoints ds-quarter-year :quarter) [0 1 4])))

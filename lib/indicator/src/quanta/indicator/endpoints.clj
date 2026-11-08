@@ -19,6 +19,7 @@
       (let [period-value (case type
                            :year #(-> % t/year .getValue)
                            :month #(-> % t/month .getValue)
+                           :quarter #(inc (quot (dec (-> % t/month .getValue)) 3))
                            :week (fn [inst]
                                    (let [week-fields WeekFields/ISO
                                          zdt (.atZone inst ZoneOffset/UTC)
@@ -27,7 +28,7 @@
                                      [week-year week]))
                            (throw (ex-info "Unsupported endpoint type"
                                            {:type type
-                                            :supported-types [:year :month :week]})))
+                                            :supported-types [:year :quarter :month :week]})))
             dates (:date ds)]
         (loop [idx 1
                last-period (period-value (nth dates 0))
