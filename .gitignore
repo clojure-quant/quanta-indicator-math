@@ -41,7 +41,8 @@ app/demo/certs
 /output/db/shuffled/*.nippy.gz
 /output/tradingview-charts
 /output/
-.clj-kondo
+.clj-kondo/.cache
+.clj-kondo/imports
 *~
 \#*\#
 .\#*

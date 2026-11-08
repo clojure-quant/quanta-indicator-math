@@ -1,4 +1,4 @@
-(ns quanta.notebook.indicator
+(ns quanta.notebook.indicator.indicator
   (:require
    [ta.indicator :as ind]
    [tablecloth.api :as tc]))

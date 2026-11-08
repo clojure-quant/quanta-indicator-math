@@ -1,4 +1,4 @@
-(ns quanta.notebook.indicator-band-atr
+(ns quanta.notebook.indicator.indicator-band-atr
   (:require
    [tablecloth.api :as tc]
    [ta.indicator.band :as band]))

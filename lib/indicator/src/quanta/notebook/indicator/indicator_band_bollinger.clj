@@ -1,4 +1,4 @@
-(ns quanta.notebook.indicator-band-bollinger
+(ns quanta.notebook.indicator.indicator-band-bollinger
   (:require
    [tablecloth.api :as tc]
    [ta.indicator.band :as band]))

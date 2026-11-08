@@ -32,9 +32,9 @@
 
 ; https://github.com/clj-kondo/clj-kondo/blob/master/doc/jvm.md
   :lint
-  {:extra-deps {clj-kondo/clj-kondo {:mvn/version "2024.03.13"}}
+  {:extra-deps {clj-kondo/clj-kondo {:mvn/version "2026.10.26"}}
    :main-opts ["-m" "clj-kondo.main"
-               "--config" "cljkondo.edn"
+               ;"--config" "cljkondo.edn"
                "--fail-level" "error"
                "--lint"
                "./lib/indicator/src"
